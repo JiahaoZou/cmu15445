@@ -135,11 +135,20 @@ class LRUKReplacer {
  private:
   // TODO(student): implement me! You can replace these member variables as you like.
   // Remove maybe_unused if you start using them.
-  [[maybe_unused]] size_t current_timestamp_{0};
-  [[maybe_unused]] size_t curr_size_{0};
-  [[maybe_unused]] size_t replacer_size_;
-  [[maybe_unused]] size_t k_;
+  [[maybe_unused]] size_t current_timestamp_{0};  //这个参数是方便用时间戳来维护lru，但我没有采用时间戳，故用不到
+  size_t curr_size_{0};   //当前可以被驱逐的数量
+  size_t replacer_size_;
+  size_t k_;
   std::mutex latch_;
+
+  
+  std::unordered_map<frame_id_t,std::list<frame_id_t>::iterator> history_map_;
+  std::unordered_map<frame_id_t,std::list<frame_id_t>::iterator> cache_map_;
+  std::list<frame_id_t> history_list_;
+  std::list<frame_id_t> cache_list_;
+  std::unordered_map<frame_id_t,bool> is_evictable_;
+  std::unordered_map<frame_id_t,size_t> use_count_;
+  
 };
 
 }  // namespace bustub

@@ -158,6 +158,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** Replacer to find unpinned pages for replacement. */
   LRUKReplacer *replacer_;
   /** List of free frames that don't have any pages on them. */
+  /** 每当delete page的时候，该page对应的frame就会加到其中。每当要申请用一个frame的时候，也优先从这个list取。*/
   std::list<frame_id_t> free_list_;
   /** This latch protects shared data structures. We recommend updating this comment to describe what it protects. */
   std::mutex latch_;

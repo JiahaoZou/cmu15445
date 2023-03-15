@@ -22,11 +22,12 @@ TEST(ExtendibleHashTableTest, DISABLED_SampleTest) {
   table->Insert(7, "g");
   table->Insert(8, "h");
   table->Insert(9, "i");
+  printf("aaaaaaa\n");
   EXPECT_EQ(2, table->GetLocalDepth(0));
   EXPECT_EQ(3, table->GetLocalDepth(1));
   EXPECT_EQ(2, table->GetLocalDepth(2));
   EXPECT_EQ(2, table->GetLocalDepth(3));
-
+printf("asdasdsa\n");
   std::string result;
   table->Find(9, result);
   EXPECT_EQ("i", result);
