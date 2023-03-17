@@ -66,7 +66,8 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
     page_table_->Remove(pages_[frame_id].GetPageId());
   }
   //到这一步，已经拿到frame号了，要为其分配新新的pageID
-  pages_[frame_id].page_id_ = AllocatePage();
+  *page_id = AllocatePage();
+  pages_[frame_id].page_id_ = *page_id;
   //新创的页，磁盘上没有，当然是脏的
   pages_[frame_id].is_dirty_ = true;
   pages_[frame_id].pin_count_ = 1;
@@ -155,12 +156,25 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
 }
 //刷盘
 auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool { 
-  
-  return false; 
+  std::lock_guard<std::mutex> guard(latch_);
+  //首先判断对应页是否在缓冲中
+  frame_id_t frame_id;
+  if(!page_table_->Find(page_id,frame_id)){
+    return true;
+  }
+  //找到了
+  disk_manager_->WritePage(pages_[frame_id].GetPageId(),pages_[frame_id].GetData());
+  pages_[frame_id].is_dirty_ = false;
+
+  return true; 
 }
 //刷盘
 void BufferPoolManagerInstance::FlushAllPgsImp() {
-
+  std::lock_guard<std::mutex> guard(latch_);
+  for(size_t i=0;i<pool_size_;i++){
+    if(pages_[i].page_id_==INVALID_PAGE_ID) continue;
+    disk_manager_->WritePage(pages_[i].GetPageId(),pages_[i].GetData());
+  }
 }
 /** 删除Page，不是从buffer中删除，而是直接从磁盘中删除，
  * 如果page是non-evictable的则删除失败。注意要删除该page对应的frame在replacer中的记录。*/
@@ -179,7 +193,7 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   //将frame加入freelist,取的时候从队尾，放回的时候就从队头
   free_list_.push_front(frame_id);
   //重置page的元数据
-  pages_[frame_id].page_id_ = -1;
+  pages_[frame_id].page_id_ = INVALID_PAGE_ID;
   pages_[frame_id].is_dirty_ = false;
   pages_[frame_id].pin_count_ = 0;
   pages_[frame_id].ResetMemory();
