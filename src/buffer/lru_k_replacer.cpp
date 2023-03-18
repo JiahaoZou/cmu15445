@@ -18,43 +18,43 @@ LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_fra
 //淘汰,将被驱逐的frameid通过指针传回去。返回成功驱逐与否
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool { 
     std::lock_guard<std::mutex> guard(latch_);
-    bool hasFind = false;
+    bool has_find = false;
     //先从history_list中找。
-    if(history_list_.size()!=0){
+    if(!history_list_.empty()){
         
-        for(auto iter = history_list_.begin();iter!=history_list_.end();iter++){
-            if(is_evictable_[*iter] == true){
-                 hasFind = true;
-                 *frame_id = *iter;
+        for(auto& id:history_list_){
+            if(is_evictable_[id]){
+                 has_find = true;
+                 *frame_id = id;
             }
         }
-        if(hasFind){
+        if(has_find){
             history_list_.erase(history_map_[*frame_id]);
             history_map_.erase(*frame_id);
             curr_size_--;
         }
     }
     //history中没有找到，到cachelist中找
-    if(hasFind==false){
-        for(auto iter = cache_list_.begin();iter!=cache_list_.end();iter++){
-            if(is_evictable_[*iter] == true){
-                 hasFind = true;
-                 *frame_id = *iter;
+    if(!has_find){
+        for(auto& id:cache_list_){
+            if(is_evictable_[id]){
+                 has_find = true;
+                 *frame_id = id;
             }
         }
-        if(hasFind){
+        if(has_find){
             cache_list_.erase(cache_map_[*frame_id]);
             cache_map_.erase(*frame_id);
             curr_size_--;
         }
     }
-    if(hasFind==true){
+    if(has_find){
         //从访问计数中移除
         use_count_.erase(*frame_id);
         //
         is_evictable_.erase(*frame_id);
     }
-    return hasFind; 
+    return has_find; 
 }
 
 void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
@@ -108,7 +108,6 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
         curr_size_--;
     }
     is_evictable_[frame_id] = set_evictable;
-    return;
 }
 
 //指定某一页驱逐
@@ -117,28 +116,27 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
     std::lock_guard<std::mutex> guard(latch_);
     //做一个判断，判断被remove的项是否已经被驱逐
     //查两个队列中是否有该frame
-    if(history_map_.count(frame_id)||cache_map_.count(frame_id)){
+    if(history_map_.count(frame_id)!=0U||cache_map_.count(frame_id)!=0U){
         return;
     }
     //判断该frame是否为可驱逐的
-    if(is_evictable_[frame_id]!=true){
+    if(!is_evictable_[frame_id]){
         return;
     }
     //驱逐
     //查history_map
-    if(history_map_.count(frame_id)){
+    if(history_map_.count(frame_id)!=0U){
         auto iter = history_map_[frame_id];
         history_list_.erase(iter);
         history_map_.erase(frame_id);
     }
-    else if(cache_map_.count(frame_id)){
+    else if(cache_map_.count(frame_id)!=0U){
         auto iter = cache_map_[frame_id];
         cache_list_.erase(iter);
         cache_map_.erase(frame_id);
     }
     use_count_.erase(frame_id);
     is_evictable_.erase(frame_id);
-    return;
 }
 
 //size返回可以被驱逐的数量

@@ -23,7 +23,12 @@ namespace bustub {
 
 template <typename K, typename V>
 ExtendibleHashTable<K, V>::ExtendibleHashTable(size_t bucket_size)
-    : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {}
+    : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {
+      auto bucket = std::make_shared<Bucket>(bucket_size_,0);
+      dir_.resize(2);
+      dir_[0] = bucket;
+      dir_[1] = bucket;
+    }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::IndexOf(const K &key) -> size_t {
@@ -69,6 +74,7 @@ auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
   //先从dir中找到bucket，再调用bucket的find方法。
   //需要加锁，按道理是加读锁即可，先直接加大锁
   std::lock_guard<std::mutex> guard(latch_);
+  //std::cout<<"find "<<IndexOf(key)<<std::endl;
   return dir_[IndexOf(key)]->Find(key,value);
   //UNREACHABLE("not implemented");
 }
@@ -77,6 +83,7 @@ template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
   //加大锁
   std::lock_guard<std::mutex> guard(latch_);
+  //std::cout<<"remove "<<IndexOf(key)<<std::endl;
   return dir_[IndexOf(key)]->Remove(key);
  //UNREACHABLE("not implemented");
 }
@@ -85,6 +92,7 @@ template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
   //加大锁
   std::lock_guard<std::mutex> guard(latch_);
+  //std::cout<<"insert "<<IndexOf(key)<<std::endl;
   //桶满
   //indexof返回的是hash后的key所对应的下标，查找dir时需要转换后的key，而实际存在hash表中是原始key
   while(!dir_[IndexOf(key)]->Insert(key,value)){
@@ -164,11 +172,11 @@ auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
       break;
     }
   }
-  if(flag == true){
+  if(flag){
     list_.erase(iter);
     return true;
   }
-  return false;
+  return flag;
  // UNREACHABLE("not implemented");
 }
 
@@ -181,7 +189,9 @@ auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> 
       return true;
     }
   }
-  if(IsFull()) return false;
+  if(IsFull()){
+    return false;
+  }
   list_.push_back({key,value});
   return true;
   //UNREACHABLE("not implemented");

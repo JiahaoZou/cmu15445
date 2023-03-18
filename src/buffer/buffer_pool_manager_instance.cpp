@@ -31,9 +31,11 @@ BufferPoolManagerInstance::BufferPoolManagerInstance(size_t pool_size, DiskManag
   }
 
   // TODO(students): remove this line after you have implemented the buffer pool manager
+  /*
   throw NotImplementedException(
       "BufferPoolManager is not implemented yet. If you have finished implementing BPM, please remove the throw "
       "exception line in `buffer_pool_manager_instance.cpp`.");
+      */
 }
 
 BufferPoolManagerInstance::~BufferPoolManagerInstance() {
@@ -142,7 +144,9 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
   std::lock_guard<std::mutex> guard(latch_);
   //如果该页面不在内存中返回false
   frame_id_t frame_id;
-  if(!page_table_->Find(page_id,frame_id)) return false;
+  if(!page_table_->Find(page_id,frame_id)){
+    return false;
+  }
   //找到了
   pages_[frame_id].pin_count_--;
   if(is_dirty){
@@ -172,7 +176,9 @@ auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {
 void BufferPoolManagerInstance::FlushAllPgsImp() {
   std::lock_guard<std::mutex> guard(latch_);
   for(size_t i=0;i<pool_size_;i++){
-    if(pages_[i].page_id_==INVALID_PAGE_ID) continue;
+    if(pages_[i].page_id_==INVALID_PAGE_ID){
+      continue;
+    }
     disk_manager_->WritePage(pages_[i].GetPageId(),pages_[i].GetData());
   }
 }
@@ -182,9 +188,13 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   std::lock_guard<std::mutex> guard(latch_);
   frame_id_t frame_id;
   //如果page没在缓冲池中，返回true即可
-  if(!page_table_->Find(page_id,frame_id)) return true;
+  if(!page_table_->Find(page_id,frame_id)){
+    return true;
+  }
   //查看pin数目，大于0， 不可删除，返回false
-  if(pages_[frame_id].pin_count_>0) return false;
+  if(pages_[frame_id].pin_count_>0){
+    return false;
+  }
   /** After deleting the page from the page table, stop tracking the frame in the replacer and add the frame
    * back to the free list. Also, reset the page's memory and metadata. Finally, you should call DeallocatePage() to
    * imitate freeing the page on the disk.*/
