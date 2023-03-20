@@ -21,7 +21,7 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, BufferPoolManager *buffer_pool_manag
  * Helper function to decide whether current b+tree is empty
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::IsEmpty() const -> bool { return true; }
+auto BPLUSTREE_TYPE::IsEmpty() const -> bool { return root_page_id_ == INVALID_PAGE_ID; }
 /*****************************************************************************
  * SEARCH
  *****************************************************************************/
@@ -32,6 +32,17 @@ auto BPLUSTREE_TYPE::IsEmpty() const -> bool { return true; }
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction) -> bool {
+  //首先找到根节点
+  Page *leaf_page = FindLeafPage(key);
+  assert(leaf_page);
+  LeafPage *page = reinterpret_cast<LeafPage *>(leaf_page->GetData());
+  assert(page);
+  ValueType val;
+  bool exit = page->Lookup(key, &val, comparator_);
+  if(exit) {
+    result->push_back(val);
+    return true;
+  }
   return false;
 }
 
@@ -47,7 +58,93 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool {
-  return false;
+  //树空，则创建一个新的根节点
+  if(IsEmpty()) {
+    StartNewTree(key, value);
+    return true;
+  }
+
+  return InsertIntoLeaf(key, value);
+}
+//TODO:没有锁，要思考如何加锁
+INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::StartNewTree(const KeyType &key, const ValueType &value) {
+  page_id_t page_id;
+  Page *root_page = buffer_pool_manager_->NewPage(&page_id);
+  assert(root_page);
+  LeafPage *page = reinterpret_cast<LeafPage *>(root_page->GetData());
+  page->Init(page_id, INVALID_PAGE_ID, leaf_max_size);
+  root_page_id_ = page_id;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool {
+  //找到应该包含key的node
+  Page *leaf_page = FindLeafPage(key);
+  assert(leaf_page);
+  /**
+   * 整个框架已经帮我们写好了实际管理磁盘的类，page是对磁盘页的抽象，page的-》getdate方法就是取得实际页的数据
+   * 我们整个b+树的内容都是属于数据部分，包括头和键值对
+   * 这里是将数据强制转换为leafpage结构
+  */
+  LeafPage *page = reinterpret_cast<LeafPage *>(leaf_page->GetData());
+  assert(page);
+  ValueType val;
+  //二分法寻找叶page中有无key，要保证key的唯一性
+  bool exit = page->Lookup(key, &val, comparator_);
+  if(exist){
+
+  }
+  //没有key，则插入
+  page->Insert(key, value, comparator_);
+  //插入后看看页是否满了。满了就要split
+  if(page->GetSize() >= page->GetMaxSize()) {
+
+  }
+  //修改了，unpin时要设置脏位。
+  buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+Page*  BPLUSTREE_TYPE::FindLeafPage(const KeyType &key) {
+  if (IsEmpty()) {
+    return nullptr;
+  }
+  Page *curr_page = buffer_pool_manager_->FetchPage(root_page_id_);
+  auto curr_page_inter = reinterpret_cast<InternalPage *>(curr_page->GetData());
+  while (!curr_page_inter->IsLeafPage()) {
+    Page *next_page = buffer_pool_manager_->FetchPage(curr_page_inter->Lookup(key, comparator_));
+    auto next_page_inter = reinterpret_cast<InternalPage *>(next_page->GetData());
+    buffer_pool_manager_->UnpinPage(curr_page->GetPageId(), false);
+    curr_page = next_page;
+    curr_page_inter = next_page_inter;
+  }
+  return curr_page;
+}
+
+/**
+ * 分裂时向parent中插值
+*/
+INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node, 
+                                      Transaction *transaction) {
+  //判断当前节点是否为root，如果是root，就得创建一个新的节点来当新的root
+  if (old_node->IsRootPage()) {
+
+  }
+  //不是root，则找到parent
+  page_id_t parent_page_id = old_node->GetParentPageId();
+  Page *parent_page = buffer_pool_manager_->FetchPage(parent_page_id);
+  assert(parent_page);
+  InternalPage *parent = reinterpret_cast<InternalPage *>(parent_page->GetData());
+  assert(parent);
+
+  int new_sz = parent->InsertNodeAfter(old_node->GetParentPageId(), key, new_node->GetPageId());
+  buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
+  if (new_sz >= parent->GetMaxSize()) {
+
+  }
+
 }
 
 /*****************************************************************************
