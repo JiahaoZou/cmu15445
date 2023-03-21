@@ -25,26 +25,15 @@ void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type_ = page_typ
  * Helper methods to get/set size (number of key/value pairs stored in that
  * page)
  */
-auto BPlusTreePage::GetSize() const -> int { 
-    return size_;
-}
-void BPlusTreePage::SetSize(int size) {
-    size_ = size;
-}
-void BPlusTreePage::IncreaseSize(int amount) {
-    size_ += amount;
-}
+auto BPlusTreePage::GetSize() const -> int { return size_; }
+void BPlusTreePage::SetSize(int size) { size_ = size; }
+void BPlusTreePage::IncreaseSize(int amount) { size_ += amount; }
 
 /*
  * Helper methods to get/set max size (capacity) of the page
  */
-auto BPlusTreePage::GetMaxSize() const -> int { 
-    
-    return max_size_; 
-}
-void BPlusTreePage::SetMaxSize(int size) {
-    max_size_ = size;
-}
+auto BPlusTreePage::GetMaxSize() const -> int { return max_size_; }
+void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
 
 /*
  * Helper method to get min page size
@@ -58,51 +47,39 @@ void BPlusTreePage::SetMaxSize(int size) {
  * 存储小于第二个槽的key的索引号，第二个槽的value存储大于等于第二个key的节点索引号。根节点
  * 的特殊之处在于他可以只有两个槽有效
  * 2.中间节点，最小得有max page size / 2个
- * 
- * 
  * 之所以这样做是因为可以方便我们分裂的处理，比如我们这个page的元素数量已经是max_size-1了，
  * 然后再插入一个，把新插入的存到我们的page里面，插入完成之后我们检查发现，
  * 这个page的size等于max_size，那么我们就可以直接把这个page传给一个split函数，让它进行分裂就好了。
  * 如果最后一个不充当哨兵的话，那么就会存在再插入的时候这个page已经放不下的情况，能处理，但相对没那么优雅。
-*/
-auto BPlusTreePage::GetMinSize() const -> int { 
-    //区分是否为根节点
-    if(IsRootPage()){
-        return IsLeafPage()?1:2;
-    }
-    //最后世界存储的其实都是max_size-1，因为最后一个留做哨兵
-    if(IsLeafPage()){
-        return (max_size_ - 1 + 1) / 2;
-    }
-    //中间节点
-    return (max_size_ - 1) / 2; 
+ */
+auto BPlusTreePage::GetMinSize() const -> int {
+  //区分是否为根节点
+  if (IsRootPage()) {
+    return IsLeafPage() ? 1 : 2;
+  }
+  //最后世界存储的其实都是max_size-1，因为最后一个留做哨兵
+  if (IsLeafPage()) {
+    return (max_size_ - 1 + 1) / 2;
+  }
+  //中间节点
+  return (max_size_ - 1) / 2;
 }
 
 /*
  * Helper methods to get/set parent page id
  */
-auto BPlusTreePage::GetParentPageId() const -> page_id_t { 
-    return parent_page_id_; 
-}
-void BPlusTreePage::SetParentPageId(page_id_t parent_page_id) {
-    parent_page_id_ = parent_page_id;
-}
+auto BPlusTreePage::GetParentPageId() const -> page_id_t { return parent_page_id_; }
+void BPlusTreePage::SetParentPageId(page_id_t parent_page_id) { parent_page_id_ = parent_page_id; }
 
 /*
  * Helper methods to get/set self page id
  */
-auto BPlusTreePage::GetPageId() const -> page_id_t { 
-    return page_id_; 
-}
-void BPlusTreePage::SetPageId(page_id_t page_id) {
-    page_id_ = page_id;
-}
+auto BPlusTreePage::GetPageId() const -> page_id_t { return page_id_; }
+void BPlusTreePage::SetPageId(page_id_t page_id) { page_id_ = page_id; }
 
 /*
  * Helper methods to set lsn
  */
-void BPlusTreePage::SetLSN(lsn_t lsn) { 
-    lsn_ = lsn; 
-}
+void BPlusTreePage::SetLSN(lsn_t lsn) { lsn_ = lsn; }
 
 }  // namespace bustub

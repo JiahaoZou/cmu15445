@@ -24,11 +24,11 @@ namespace bustub {
 template <typename K, typename V>
 ExtendibleHashTable<K, V>::ExtendibleHashTable(size_t bucket_size)
     : global_depth_(0), bucket_size_(bucket_size), num_buckets_(1) {
-      auto bucket = std::make_shared<Bucket>(bucket_size_,0);
-      dir_.resize(2);
-      dir_[0] = bucket;
-      dir_[1] = bucket;
-    }
+  auto bucket = std::make_shared<Bucket>(bucket_size_, 0);
+  dir_.resize(2);
+  dir_[0] = bucket;
+  dir_[1] = bucket;
+}
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::IndexOf(const K &key) -> size_t {
@@ -74,74 +74,64 @@ auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
   //先从dir中找到bucket，再调用bucket的find方法。
   //需要加锁，按道理是加读锁即可，先直接加大锁
   std::lock_guard<std::mutex> guard(latch_);
-  //std::cout<<"find "<<IndexOf(key)<<std::endl;
-  return dir_[IndexOf(key)]->Find(key,value);
-  //UNREACHABLE("not implemented");
+  return dir_[IndexOf(key)]->Find(key, value);
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
   //加大锁
   std::lock_guard<std::mutex> guard(latch_);
-  //std::cout<<"remove "<<IndexOf(key)<<std::endl;
   return dir_[IndexOf(key)]->Remove(key);
- //UNREACHABLE("not implemented");
 }
 
 template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
   //加大锁
   std::lock_guard<std::mutex> guard(latch_);
-  //std::cout<<"insert "<<IndexOf(key)<<std::endl;
   //桶满
-  //indexof返回的是hash后的key所对应的下标，查找dir时需要转换后的key，而实际存在hash表中是原始key
-  while(!dir_[IndexOf(key)]->Insert(key,value)){
+  // indexof返回的是hash后的key所对应的下标，查找dir时需要转换后的key，而实际存在hash表中是原始key
+  while (!dir_[IndexOf(key)]->Insert(key, value)) {
     int id = IndexOf(key);
     auto target_bucket = dir_[id];
     //局部深度等于全局深度，全局深度需要加1，即dir_扩大一倍
-    //dir_扩容
-    if(target_bucket->GetDepth() == GetGlobalDepthInternal()){
+    // dir_扩容
+    if (target_bucket->GetDepth() == GetGlobalDepthInternal()) {
       global_depth_++;
       int capacity = dir_.size();
-      dir_.resize(capacity<<1);
-      for(int idx=0;idx<capacity;++idx){
-        dir_[idx+capacity] = dir_[idx];
+      dir_.resize(capacity << 1);
+      for (int idx = 0; idx < capacity; ++idx) {
+        dir_[idx + capacity] = dir_[idx];
       }
     }
     //分裂
-    int mask = 1<<target_bucket->GetDepth();    //桶深度加1后的掩码
-    //创建两个新bucket的shared_ptr 
-    auto zero_bucket = std::make_shared<Bucket>(bucket_size_,target_bucket->GetDepth()+1);
-    auto one_bucket = std::make_shared<Bucket>(bucket_size_,target_bucket->GetDepth()+1);
-    for(const auto &item : target_bucket->GetItems()){
+    //桶深度加1后的掩码
+    int mask = 1 << target_bucket->GetDepth();
+    //创建两个新bucket的shared_ptr
+    auto zero_bucket = std::make_shared<Bucket>(bucket_size_, target_bucket->GetDepth() + 1);
+    auto one_bucket = std::make_shared<Bucket>(bucket_size_, target_bucket->GetDepth() + 1);
+    for (const auto &item : target_bucket->GetItems()) {
       //用c++标准库的hash函数将key做一次hash，生成固定格式的数据。
       //不一定非得用这个函数，也可以自己实现。
       size_t hashkey = std::hash<K>()(item.first);
-      if((hashkey & mask) != 0U){
-        one_bucket->Insert(item.first,item.second);
-      }else{
-        zero_bucket->Insert(item.first,item.second);
+      if ((hashkey & mask) != 0U) {
+        one_bucket->Insert(item.first, item.second);
+      } else {
+        zero_bucket->Insert(item.first, item.second);
       }
     }
     //如果两个桶均非空，即两个桶均非满，则可以停止扩容，实际的bucket数量在此轮扩容中增加了1
     num_buckets_++;
-    /*
-    if(!one_bucket->GetItems().empty()&&!zero_bucket->GetItems().empty()){
-    }
-    */
     //注意：这里如果直接算下标会很麻烦，仔细体会，可以进行优化，但暂时先就这样
-    for (size_t i=0;i<dir_.size();i++){
-      if(dir_[i] == target_bucket){
-        if((i&mask)!=0U){
+    for (size_t i = 0; i < dir_.size(); i++) {
+      if (dir_[i] == target_bucket) {
+        if ((i & mask) != 0U) {
           dir_[i] = one_bucket;
-        }else{
+        } else {
           dir_[i] = zero_bucket;
         }
       }
     }
   }
-
-  //UNREACHABLE("not implemented");
 }
 
 //===--------------------------------------------------------------------===//
@@ -149,52 +139,49 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
 //===--------------------------------------------------------------------===//
 template <typename K, typename V>
 ExtendibleHashTable<K, V>::Bucket::Bucket(size_t array_size, int depth) : size_(array_size), depth_(depth) {}
-//bucket中的这些方法就不需要加锁了，因为在对目录进行操作时就已经加了锁
+// bucket中的这些方法就不需要加锁了，因为在对目录进行操作时就已经加了锁
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Find(const K &key, V &value) -> bool {
-  for(auto &item : list_){
-    if(key == item.first){
-      value = item.second; 
+  for (auto &item : list_) {
+    if (key == item.first) {
+      value = item.second;
       return true;
     }
   }
   return false;
-  //UNREACHABLE("not implemented");
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Remove(const K &key) -> bool {
   auto iter = list_.begin();
   bool flag = false;
-  for(;iter!=list_.end();iter++){
-    if(iter->first==key){
+  for (; iter != list_.end(); iter++) {
+    if (iter->first == key) {
       flag = true;
       break;
     }
   }
-  if(flag){
+  if (flag) {
     list_.erase(iter);
     return true;
   }
   return flag;
- // UNREACHABLE("not implemented");
 }
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> bool {
   //需要判断重复key
-  for(auto &item : list_){
-    if(key == item.first){
+  for (auto &item : list_) {
+    if (key == item.first) {
       item.second = value;
       return true;
     }
   }
-  if(IsFull()){
+  if (IsFull()) {
     return false;
   }
-  list_.push_back({key,value});
+  list_.push_back({key, value});
   return true;
-  //UNREACHABLE("not implemented");
 }
 
 template class ExtendibleHashTable<page_id_t, Page *>;

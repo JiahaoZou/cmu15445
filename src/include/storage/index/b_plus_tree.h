@@ -20,7 +20,7 @@
 #include "storage/page/b_plus_tree_leaf_page.h"
 
 namespace bustub {
-
+enum Operation { READ, INSERT, DELETE };
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
 
 /**
@@ -48,15 +48,15 @@ class BPlusTree {
   // Insert a key-value pair into this B+ tree.
   auto Insert(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
 
-  void StartNewTree(const KeyType &key, const ValueType &value);
-  
-  auto InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
+  auto InsertInParent(Page *page_leaf, const KeyType &key, Page *page_bother) -> void;
 
-  void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node, Transaction *transaction);
-  
-  Page* FindLeafPage(const KeyType &key);
+  auto FindLeafPage(const KeyType &key) -> Page *;
+
+  auto FindLeafPageRW(const KeyType &key, Transaction *transaction, Operation op) -> Page *;
   // Remove a key and its value from this B+ tree.
   void Remove(const KeyType &key, Transaction *transaction = nullptr);
+
+  auto DeleteEntry(Page *&page, const KeyType &key) -> void;
 
   // return the value associated with a given key
   auto GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction = nullptr) -> bool;
@@ -89,6 +89,16 @@ class BPlusTree {
 
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
+  auto GetMaxsize(BPlusTreePage *page) const -> int;
+
+  auto IsSafe(Page *page, Operation op) -> bool;
+
+  auto UnlockAndUnpin(Transaction *transaction, Operation op) -> void;
+
+  auto InsertInParentRW(Page *page_leaf, const KeyType &key, Page *page_bother, Transaction *transaction) -> void;
+
+  auto DeleteEntryRW(Page *&page, const KeyType &key, Transaction *transaction) -> void;
+
   // member variable
   std::string index_name_;
   page_id_t root_page_id_;
@@ -96,6 +106,7 @@ class BPlusTree {
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
+  std::mutex latch_;
 };
 
 }  // namespace bustub
