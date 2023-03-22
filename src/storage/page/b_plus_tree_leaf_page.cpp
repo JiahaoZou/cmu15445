@@ -85,7 +85,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparato
   }
   return l;
 }
-
+// 拆页
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Break(Page *bother_page) -> void {
   int mid = GetSize() / 2;
@@ -117,6 +117,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, int index, const Key
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Delete(const KeyType &key, const KeyComparator &keyComparator) -> bool {
   int index = KeyIndex(key, keyComparator);
+  // 这里的第二个判断index处的key和指定的key是否相等，如果不等，说明前一句和后一句之间key处的数据已经被删除了，不用再删
   if (index >= GetSize() || keyComparator(KeyAt(index), key) != 0) {
     return false;
   }

@@ -91,7 +91,7 @@ class BPlusTree {
 
   auto GetMaxsize(BPlusTreePage *page) const -> int;
 
-  auto IsSafe(Page *page, Operation op) -> bool;
+  auto IsSafe(BPlusTreePage *page, Operation op) -> bool;
 
   auto UnlockAndUnpin(Transaction *transaction, Operation op) -> void;
 

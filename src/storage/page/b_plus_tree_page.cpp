@@ -18,7 +18,8 @@ namespace bustub {
  * Page type enum class is defined in b_plus_tree_page.h
  */
 auto BPlusTreePage::IsLeafPage() const -> bool { return page_type_ == IndexPageType::LEAF_PAGE; }
-auto BPlusTreePage::IsRootPage() const -> bool { return parent_page_id_ == INVALID_PAGE_ID; }
+// 注意，这个函数名称具有误导性，实际是想判断是中间节点吗
+auto BPlusTreePage::IsRootPage() const -> bool { return page_type_ == IndexPageType::INTERNAL_PAGE; }
 void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type_ = page_type; }
 
 /*
@@ -53,15 +54,15 @@ void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
  * 如果最后一个不充当哨兵的话，那么就会存在再插入的时候这个page已经放不下的情况，能处理，但相对没那么优雅。
  */
 auto BPlusTreePage::GetMinSize() const -> int {
-  //区分是否为根节点
+  // 区分是否为根节点
   if (IsRootPage()) {
     return IsLeafPage() ? 1 : 2;
   }
-  //最后世界存储的其实都是max_size-1，因为最后一个留做哨兵
+  // 最后世界存储的其实都是max_size-1，因为最后一个留做哨兵
   if (IsLeafPage()) {
     return (max_size_ - 1 + 1) / 2;
   }
-  //中间节点
+  // 中间节点
   return (max_size_ - 1) / 2;
 }
 
