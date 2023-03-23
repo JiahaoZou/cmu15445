@@ -253,13 +253,15 @@ auto BPLUSTREE_TYPE::FindLeafPageRW(const KeyType &key, Transaction *transaction
 }
 
 /**
- * 分裂时向parent中插值
+ * 分裂时向parent中插值，进入这个函数就一定不是叶节点了
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::InsertInParent(Page *page_leaf, const KeyType &key, Page *page_bother) -> void {
   auto tree_page = reinterpret_cast<BPlusTreePage *>(page_leaf->GetData());
 
   if (tree_page->GetParentPageId() == INVALID_PAGE_ID) {
+    // 如果没有父节点
+    // 创建一个父节点，作为新的根节点
     page_id_t new_page_id;
     Page *new_page = buffer_pool_manager_->NewPage(&new_page_id);
     auto new_root = reinterpret_cast<InternalPage *>(new_page->GetData());
@@ -277,11 +279,14 @@ auto BPLUSTREE_TYPE::InsertInParent(Page *page_leaf, const KeyType &key, Page *p
     buffer_pool_manager_->UnpinPage(new_page_id, true);
     return;
   }
+  // 有父节点
   page_id_t parent_id = tree_page->GetParentPageId();
   Page *parent_page = buffer_pool_manager_->FetchPage(parent_id);
   auto parent_node = reinterpret_cast<InternalPage *>(parent_page->GetData());
   auto page_bother_node = reinterpret_cast<InternalPage *>(page_bother->GetData());
+  // 向parent中插值
   if (parent_node->GetSize() < parent_node->GetMaxSize()) {
+    // 判断是否满了，没有满
     parent_node->Insert(std::make_pair(key, page_bother->GetPageId()), comparator_);
     page_bother_node->SetParentPageId(parent_id);
     buffer_pool_manager_->UnpinPage(parent_id, true);
@@ -399,13 +404,20 @@ auto BPLUSTREE_TYPE::DeleteEntry(Page *&page, const KeyType &key) -> void {
     buffer_pool_manager_->DeletePage(b_node->GetPageId());
     return;
   }
-  // 到这里当前节点就不是根节点了
-  // 
+  // 到这里当前节点还有可能是根节点
+  if (root_page_id_ == b_node->GetPageId()) {
+    // 如果是根节点，则一定不会是不安全状态，返回就行了
+    buffer_pool_manager_->UnpinPage(b_node->GetPageId(), true);
+    return;
+  }
+  // 当前一定不会是根节点了
   if (b_node->GetSize() < b_node->GetMinSize()) {
+    // 不安全，需要合并
     Page *bother_page;
     KeyType parent_key;
     bool ispre;
-
+    // 通过父节点找兄弟节点，想想如果是叶节点能否直接通过指针找兄弟节点呢？
+    // 不可以，因为通过指针找到的相邻节点不一定属于同一个父节点，即通过指针可以找相邻节点，但不一定找得了兄弟节点
     auto inter_node = reinterpret_cast<InternalPage *>(page->GetData());
     auto parent_page_id = inter_node->GetParentPageId();
     auto parent_page = buffer_pool_manager_->FetchPage(parent_page_id);
@@ -413,7 +425,9 @@ auto BPLUSTREE_TYPE::DeleteEntry(Page *&page, const KeyType &key) -> void {
     parent_node->GetBotherPage(page->GetPageId(), bother_page, parent_key, ispre, buffer_pool_manager_);
 
     auto bother_node = reinterpret_cast<BPlusTreePage *>(bother_page->GetData());
-    if ((bother_node->GetSize() + b_node->GetSize()) <= GetMaxsize(b_node)) {
+    // 两个node加起来的总大小小于最大值， 可以合并
+    if ((bother_node->GetSize() + b_node->GetSize()) < GetMaxsize(b_node)) {
+      // 如果bro不是当前节点的前一个，则将指针做一次交换
       if (!ispre) {
         auto tmp_page = page;
         page = bother_page;
@@ -423,10 +437,12 @@ auto BPLUSTREE_TYPE::DeleteEntry(Page *&page, const KeyType &key) -> void {
         bother_node = tmp_node;
       }
       if (b_node->IsRootPage()) {
+        // 是中间节点
         auto inter_bother_node = reinterpret_cast<InternalPage *>(bother_page->GetData());
         // auto inter_b_node = reinterpret_cast<InternalPage *>(page->GetData());
         inter_bother_node->Merge(parent_key, page, buffer_pool_manager_);
       } else {
+        // 是叶节点
         auto leaf_bother_node = reinterpret_cast<LeafPage *>(bother_page->GetData());
         auto leaf_b_node = reinterpret_cast<LeafPage *>(page->GetData());
         leaf_bother_node->Merge(page, buffer_pool_manager_);
@@ -438,14 +454,20 @@ auto BPLUSTREE_TYPE::DeleteEntry(Page *&page, const KeyType &key) -> void {
       DeleteEntry(parent_page, parent_key);
 
     } else {
+      // 不安全，但不可以合并，即两边之和太大了
       if (ispre) {
         if (bother_node->IsRootPage()) {
+          // 是中间节点
           auto inter_bother_node = reinterpret_cast<InternalPage *>(bother_page->GetData());
           auto inter_b_node = reinterpret_cast<InternalPage *>(page->GetData());
+          // 将前一个节点的最后一个值借过来放在当前的节点
           page_id_t last_value = inter_bother_node->ValueAt(inter_bother_node->GetSize() - 1);
           KeyType last_key = inter_bother_node->KeyAt(inter_bother_node->GetSize() - 1);
           inter_bother_node->Delete(last_key, comparator_);
+          // 插到最前边
           inter_b_node->InsertFirst(parent_key, last_value);
+          // 前一个节点的最后一个孩子要改变parent
+          // 为什么这里取节点时不pin，但之后却要unpin？
           auto child_page = buffer_pool_manager_->FetchPage(last_value);
           auto child_node = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
           if (child_node->IsLeafPage()) {
@@ -465,6 +487,7 @@ auto BPLUSTREE_TYPE::DeleteEntry(Page *&page, const KeyType &key) -> void {
           buffer_pool_manager_->UnpinPage(bother_page->GetPageId(), true);
 
         } else {
+          // 当前节点为叶节点，相比中间节点，叶节点不需要调整孩子
           auto leaf_bother_node = reinterpret_cast<LeafPage *>(bother_page->GetData());
           auto leaf_b_node = reinterpret_cast<LeafPage *>(page->GetData());
           ValueType last_value = leaf_bother_node->ValueAt(leaf_bother_node->GetSize() - 1);
@@ -480,7 +503,9 @@ auto BPLUSTREE_TYPE::DeleteEntry(Page *&page, const KeyType &key) -> void {
           buffer_pool_manager_->UnpinPage(bother_page->GetPageId(), true);
         }
       } else {
+        // 取得的bro为后一个节点，需要把bro的第一个节点给借过来
         if (bother_node->IsRootPage()) {
+          // 是中间节点
           auto inter_bother_node = reinterpret_cast<InternalPage *>(bother_page->GetData());
           auto inter_b_node = reinterpret_cast<InternalPage *>(page->GetData());
           page_id_t first_value = inter_bother_node->ValueAt(0);

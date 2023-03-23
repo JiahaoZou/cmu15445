@@ -139,16 +139,18 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Delete(const KeyType &key, const KeyCompara
   IncreaseSize(-1);
   return true;
 }
-
+// 这个函数是由子节点调用的父节点的方法，要求父节点帮子节点找到它的兄弟节点，此方法只有中间节点有，因为只有中间节点有子节点
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetBotherPage(page_id_t child_page_id, Page *&bother_page, KeyType &key,
                                                    bool &ispre, BufferPoolManager *buffer_pool_manager_) -> void {
   int i;
+  // 找到了请求的子节点
   for (i = 0; i < GetSize(); i++) {
     if (ValueAt(i) == child_page_id) {
       break;
     }
   }
+  // i节点不是第一个的
   if ((i - 1) >= 0) {
     bother_page = buffer_pool_manager_->FetchPage(ValueAt(i - 1));
     bother_page->WLatch();
@@ -156,6 +158,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetBotherPage(page_id_t child_page_id, Page
     ispre = true;
     return;
   }
+  // i节点是第一个，则返回右侧的
   bother_page = buffer_pool_manager_->FetchPage(ValueAt(i + 1));
   bother_page->WLatch();
   key = KeyAt(i + 1);
