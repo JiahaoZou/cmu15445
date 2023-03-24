@@ -60,10 +60,10 @@ auto BPlusTreePage::GetMinSize() const -> int {
   }
   // 最后世界存储的其实都是max_size-1，因为最后一个留做哨兵
   if (IsLeafPage()) {
-    return (max_size_ - 1 + 1) / 2;
+    return (max_size_ + 1) / 2;
   }
   // 中间节点
-  return (max_size_ - 1) / 2;
+  return (max_size_) / 2;
 }
 
 /*

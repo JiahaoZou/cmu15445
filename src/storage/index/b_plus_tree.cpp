@@ -14,12 +14,12 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, BufferPoolManager *buffer_pool_manag
       root_page_id_(INVALID_PAGE_ID),
       buffer_pool_manager_(buffer_pool_manager),
       comparator_(comparator),
-      leaf_max_size_(leaf_max_size),
-      internal_max_size_(internal_max_size) {
-        std::cout<<leaf_max_size_<<" "<<internal_max_size_<<std::endl;
-      }
+      leaf_max_size_(leaf_max_size - 1),
+      internal_max_size_(internal_max_size - 1) {
+  std::cout << "aa = " << leaf_max_size_ << "aa " << internal_max_size_ << std::endl;
+}
 
-/** 
+/**
  * 测试文件中这样来创建一棵tree("foo_pk", bpm, comparator, 2, 3);
  * 由于中间节点的第一个key是不存储值的，所以我们可以认为，一个中间节点它的size初始时就为1，所以为了和叶节点存储数量同步，
  * 中间节点的maxsize会大1，同时，无论是中间节点还是叶节点，都应该保留最后一个位置为空，以便于分裂
@@ -30,7 +30,7 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, BufferPoolManager *buffer_pool_manag
  * 信息，就包含脏位，pin和锁，一旦该页被换出内存，这些信息都被清空，锁以被锁住的页一定是不能被换回内存的，即一定是被pin住的。
  */
 /**
- * For this task, you have to use the passed in pointer parameter called 
+ * For this task, you have to use the passed in pointer parameter called
  * transaction (src/include/concurrency/transaction.h).
  * It provides methods to store the page on which you have acquired latch while traversing
  * through B+ tree and also methods to store the page which you have deleted during Remove
@@ -63,12 +63,12 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
   if (page == nullptr) {
     return false;
   }
-  LeafPage *leaf_page = reinterpret_cast<LeafPage *>(page->GetData());
+  auto *leaf_page = reinterpret_cast<LeafPage *>(page->GetData());
   // 找到key在page中的下标， TODO：查看KeyIndex具体实现
   int index = leaf_page->KeyIndex(key, comparator_);
   // std::cout<<"keyindex="<<index<<std::endl;
   // 检测找到的index是否正确
-  std::cout<<"find index = "<<index<<" key="<<key<<std::endl;
+  // std::cout<<"find index = "<<index<<" key="<<key<<std::endl;
   if (index < leaf_page->GetSize() && comparator_(leaf_page->KeyAt(index), key) == 0) {
     result->push_back(leaf_page->ValueAt(index));
     if (transaction != nullptr) {
@@ -120,7 +120,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
       page_id_t page_id;
       // 申请一个新的page存放新的节点
       Page *page = buffer_pool_manager_->NewPage(&page_id);
-      LeafPage * leaf_node = reinterpret_cast<LeafPage *>(page->GetData());
+      auto *leaf_node = reinterpret_cast<LeafPage *>(page->GetData());
       leaf_node->Init(page_id, INVALID_PAGE_ID, leaf_max_size_);
       root_page_id_ = page_id;
       buffer_pool_manager_->UnpinPage(page_id, true);
@@ -130,12 +130,12 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     page_leaf = FindLeafPage(key);
   }
   // 找到叶节点
-  LeafPage * leaf_node = reinterpret_cast<LeafPage *>(page_leaf->GetData());
+  auto *leaf_node = reinterpret_cast<LeafPage *>(page_leaf->GetData());
   // 找index应该插入的位置
   int index = leaf_node->KeyIndex(key, comparator_);
   // 在leafpage的insert中，会判断待插入的key与对应index的key是否相同，相同则返回false
   bool retcode = leaf_node->Insert(std::make_pair(key, value), index, comparator_);
-  std::cout<<leaf_node->GetPageId()<<" index="<<index<<" key = "<<key<<std::endl;
+  std::cout << leaf_node->GetPageId() << " index=" << index << " key = " << key << std::endl;
   if (!retcode) {
     // UnlockAndUnpin(transaction, INSERT);
     return false;
@@ -159,7 +159,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   }
 
   // UnlockAndUnpin(transaction, INSERT);
-  std::cout<<"root = "<<GetRootPageId()<<std::endl;
+  std::cout << "root = " << GetRootPageId() << std::endl;
   return true;
 }
 /**
@@ -236,7 +236,6 @@ auto BPLUSTREE_TYPE::InsertInParent(Page *page_leaf, const KeyType &key, Page *p
   buffer_pool_manager_->UnpinPage(page_parent_bother_id, true);
   buffer_pool_manager_->UnpinPage(parent_id, true);
 }
-
 
 /*****************************************************************************
  * REMOVE
@@ -478,24 +477,24 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
   if (IsEmpty()) {
     return INDEXITERATOR_TYPE();
   }
-  std::cout<<key<<std::endl;
+  std::cout << key << std::endl;
   auto leaf_page = FindLeafPage(key);
-  std::cout<<key<<std::endl;
+  std::cout << key << std::endl;
   auto leaf_node = reinterpret_cast<LeafPage *>(leaf_page->GetData());
   int index;
   for (index = 0; index < leaf_node->GetSize(); index++) {
-    std::cout<<"index = "<<index<<" key = "<<leaf_node->KeyAt(index)<<std::endl;
+    std::cout << "index = " << index << " key = " << leaf_node->KeyAt(index) << std::endl;
     if (comparator_(leaf_node->KeyAt(index), key) == 0) {
       break;
     }
   }
-  std::cout<<leaf_page->GetPageId()<<" "<<index<<std::endl;
+  std::cout << leaf_page->GetPageId() << " " << index << std::endl;
   if (index == leaf_node->GetSize()) {
     leaf_page->WUnlatch();
     buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), false);
     return End();
   }
-  std::cout<<leaf_page->GetPageId()<<" "<<index<<std::endl;
+  std::cout << leaf_page->GetPageId() << " " << index << std::endl;
   return INDEXITERATOR_TYPE(leaf_page, index, leaf_page->GetPageId(), buffer_pool_manager_);
 }
 
@@ -535,7 +534,8 @@ auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE {
   page_id_t page_id = curr_page->GetPageId();
   // curr_page->RUnlatch();
   buffer_pool_manager_->UnpinPage(curr_page->GetPageId(), false);
-  std::cout<<"end "<<"index "<<curr_node->GetSize()<<std::endl;
+  std::cout << "end "
+            << "index " << curr_node->GetSize() << std::endl;
   return INDEXITERATOR_TYPE(curr_page, curr_node->GetSize(), page_id, buffer_pool_manager_);
 }
 
