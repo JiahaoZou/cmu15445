@@ -52,6 +52,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType { ret
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &keyComparator) -> ValueType {
   for (int i = 1; i < GetSize(); i++) {
+    // 比较大于0，往左，与教材上一致
     if (keyComparator(array_[i].first, key) > 0) {
       return array_[i - 1].second;
     }

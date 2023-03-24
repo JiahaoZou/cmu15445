@@ -52,7 +52,6 @@ class BPlusTree {
 
   auto FindLeafPage(const KeyType &key) -> Page *;
 
-  auto FindLeafPageRW(const KeyType &key, Transaction *transaction, Operation op) -> Page *;
   // Remove a key and its value from this B+ tree.
   void Remove(const KeyType &key, Transaction *transaction = nullptr);
 
@@ -94,10 +93,6 @@ class BPlusTree {
   auto IsSafe(BPlusTreePage *page, Operation op) -> bool;
 
   auto UnlockAndUnpin(Transaction *transaction, Operation op) -> void;
-
-  auto InsertInParentRW(Page *page_leaf, const KeyType &key, Page *page_bother, Transaction *transaction) -> void;
-
-  auto DeleteEntryRW(Page *&page, const KeyType &key, Transaction *transaction) -> void;
 
   // member variable
   std::string index_name_;

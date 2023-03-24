@@ -92,7 +92,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Break(Page *bother_page) -> void {
 
   auto leaf_bother_page =
       reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator> *>(bother_page->GetData());
-  for (int i = mid, j = 0; i < GetMaxSize(); i++, j++) {
+  for (int i = mid, j = 0; i <= GetMaxSize(); i++, j++) {
     leaf_bother_page->array_[j] = array_[i];
     IncreaseSize(-1);
     leaf_bother_page->IncreaseSize(1);
