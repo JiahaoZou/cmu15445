@@ -11,7 +11,7 @@
 #pragma once
 
 #include <queue>
-
+#include "concurrency/transaction.h"
 #include "storage/page/b_plus_tree_page.h"
 
 namespace bustub {
@@ -40,15 +40,17 @@ class BPlusTreeInternalPage : public BPlusTreePage {
 
   auto KeyAt(int index) const -> KeyType;
   void SetKeyAt(int index, const KeyType &key);
+  auto SetValueAt(int index, const ValueType &value) -> void;
   auto ValueAt(int index) const -> ValueType;
   auto Lookup(const KeyType &key, const KeyComparator &keyComparator) -> ValueType;
-  auto SetValueAt(int index, const ValueType &value) -> void;
   auto Insert(const MappingType &value, const KeyComparator &keyComparator) -> void;
   auto Break(const KeyType &key, Page *page_bother, Page *page_parent_page, const KeyComparator &keyComparator,
              BufferPoolManager *buffer_pool_manager_) -> void;
   auto Delete(const KeyType &key, const KeyComparator &keyComparator) -> bool;
   auto GetBotherPage(page_id_t child_page_id, Page *&bother_page, KeyType &key, bool &ispre,
                      BufferPoolManager *buffer_pool_manager_) -> void;
+  auto GetBotherPageRW(page_id_t child_page_id, Page *&bother_page, KeyType &key, bool &ispre,
+                       BufferPoolManager *buffer_pool_manager_, Transaction *transaction) -> void;
   auto Merge(const KeyType &key, Page *right_page, BufferPoolManager *buffer_pool_manager_) -> void;
   auto KeyIndex(const KeyType &key, const KeyComparator &keyComparator) -> int;
   auto InsertFirst(const KeyType &key, const ValueType &value) -> void;

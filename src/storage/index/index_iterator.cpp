@@ -51,7 +51,8 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE::IndexIterator(Page *curr_page, int index, page_id_t page_id, BufferPoolManager *bufferPoolManager)
+IndexIterator<KeyType, ValueType, KeyComparator>::IndexIterator(Page *curr_page, int index, page_id_t page_id,
+                                                                BufferPoolManager *bufferPoolManager)
     : page_id_(page_id), curr_page_(curr_page), index_(index), buffer_pool_manager_(bufferPoolManager) {}
 
 template class IndexIterator<GenericKey<4>, RID, GenericComparator<4>>;

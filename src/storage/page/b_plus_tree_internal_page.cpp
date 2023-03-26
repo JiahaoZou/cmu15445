@@ -27,9 +27,9 @@ namespace bustub {
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id, int max_size) {
   SetPageId(page_id);
-  SetPageType(IndexPageType::INTERNAL_PAGE);
   SetParentPageId(parent_id);
   SetMaxSize(max_size);
+  SetPageType(IndexPageType::INTERNAL_PAGE);
   SetSize(0);
 }
 /*
@@ -37,7 +37,10 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id
  * array offset)
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const -> KeyType { return array_[index].first; }
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::KeyAt(int index) const -> KeyType {
+  // replace with your own code
+  return array_[index].first;
+}
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) { array_[index].first = key; }
@@ -52,7 +55,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType { ret
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &keyComparator) -> ValueType {
   for (int i = 1; i < GetSize(); i++) {
-    // 比较大于0，往左，与教材上一致
     if (keyComparator(array_[i].first, key) > 0) {
       return array_[i - 1].second;
     }
@@ -64,7 +66,6 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetValueAt(int index, const ValueType &value) -> void {
   array_[index].second = value;
 }
-
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const MappingType &value, const KeyComparator &keyComparator) -> void {
   for (int i = GetSize() - 1; i > 0; i--) {
@@ -81,7 +82,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const MappingType &value, const KeyC
 
   IncreaseSize(1);
 }
-
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Break(const KeyType &key, Page *page_bother, Page *page_parent_page,
                                            const KeyComparator &keyComparator, BufferPoolManager *buffer_pool_manager_)
@@ -140,18 +140,15 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Delete(const KeyType &key, const KeyCompara
   IncreaseSize(-1);
   return true;
 }
-// 这个函数是由子节点调用的父节点的方法，要求父节点帮子节点找到它的兄弟节点，此方法只有中间节点有，因为只有中间节点有子节点
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetBotherPage(page_id_t child_page_id, Page *&bother_page, KeyType &key,
                                                    bool &ispre, BufferPoolManager *buffer_pool_manager_) -> void {
   int i;
-  // 找到了请求的子节点
   for (i = 0; i < GetSize(); i++) {
     if (ValueAt(i) == child_page_id) {
       break;
     }
   }
-  // i节点不是第一个的
   if ((i - 1) >= 0) {
     bother_page = buffer_pool_manager_->FetchPage(ValueAt(i - 1));
     bother_page->WLatch();
@@ -159,14 +156,35 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetBotherPage(page_id_t child_page_id, Page
     ispre = true;
     return;
   }
-  // i节点是第一个，则返回右侧的
   bother_page = buffer_pool_manager_->FetchPage(ValueAt(i + 1));
   bother_page->WLatch();
   key = KeyAt(i + 1);
   ispre = false;
 }
-
-//
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetBotherPageRW(page_id_t child_page_id, Page *&bother_page, KeyType &key,
+                                                     bool &ispre, BufferPoolManager *buffer_pool_manager_,
+                                                     Transaction *transaction) -> void {
+  int i;
+  for (i = 0; i < GetSize(); i++) {
+    if (ValueAt(i) == child_page_id) {
+      break;
+    }
+  }
+  if ((i - 1) >= 0) {
+    bother_page = buffer_pool_manager_->FetchPage(ValueAt(i - 1));
+    bother_page->WLatch();
+    transaction->AddIntoPageSet(bother_page);
+    key = KeyAt(i);
+    ispre = true;
+    return;
+  }
+  bother_page = buffer_pool_manager_->FetchPage(ValueAt(i + 1));
+  bother_page->WLatch();
+  transaction->AddIntoPageSet(bother_page);
+  key = KeyAt(i + 1);
+  ispre = false;
+}
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Merge(const KeyType &key, Page *right_page,
                                            BufferPoolManager *buffer_pool_manager_) -> void {
@@ -241,7 +259,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::DeleteFirst() -> void {
   }
   IncreaseSize(-1);
 }
-// 定义了模版key的比较方式
+
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;
 template class BPlusTreeInternalPage<GenericKey<8>, page_id_t, GenericComparator<8>>;

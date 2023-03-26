@@ -18,7 +18,6 @@ namespace bustub {
  * Page type enum class is defined in b_plus_tree_page.h
  */
 auto BPlusTreePage::IsLeafPage() const -> bool { return page_type_ == IndexPageType::LEAF_PAGE; }
-// 注意，这个函数名称具有误导性，实际是想判断是中间节点吗
 auto BPlusTreePage::IsRootPage() const -> bool { return page_type_ == IndexPageType::INTERNAL_PAGE; }
 void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type_ = page_type; }
 
@@ -40,30 +39,8 @@ void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
  * Helper method to get min page size
  * Generally, min page size == max page size / 2
  */
-/**
- * 这个函数很特殊，是判断当前节点做删除操作时是否是处于安全状态的依据。
- * 不同的节点类型minsize不同，
- * 1.根节点，如果根节点也是叶节点，即此时只有一层，则根节点可以只有一个key-value对，放在第一个槽
- * 若根节点不为叶节点，此时根节点是一个特殊的中间节点，其第一个槽的key不存储数据，第一个槽的value则
- * 存储小于第二个槽的key的索引号，第二个槽的value存储大于等于第二个key的节点索引号。根节点
- * 的特殊之处在于他可以只有两个槽有效
- * 2.中间节点，最小得有max page size / 2个
- * 之所以这样做是因为可以方便我们分裂的处理，比如我们这个page的元素数量已经是max_size-1了，
- * 然后再插入一个，把新插入的存到我们的page里面，插入完成之后我们检查发现，
- * 这个page的size等于max_size，那么我们就可以直接把这个page传给一个split函数，让它进行分裂就好了。
- * 如果最后一个不充当哨兵的话，那么就会存在再插入的时候这个page已经放不下的情况，能处理，但相对没那么优雅。
- */
 auto BPlusTreePage::GetMinSize() const -> int {
-  // 区分是否为根节点
-  if (IsRootPage()) {
-    return IsLeafPage() ? 1 : 2;
-  }
-  // 最后世界存储的其实都是max_size-1，因为最后一个留做哨兵
-  if (IsLeafPage()) {
-    return (max_size_ + 1) / 2;
-  }
-  // 中间节点
-  return (max_size_) / 2;
+  return IsLeafPage() ? ceil((max_size_ - 1) / 2.0) : ceil(max_size_ / 2.0);
 }
 
 /*
