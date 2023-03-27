@@ -48,6 +48,7 @@ class InsertExecutor : public AbstractExecutor {
    *
    * NOTE: InsertExecutor::Next() does not use the `rid` out-parameter.
    * NOTE: InsertExecutor::Next() returns true with number of inserted rows produced only once.
+   * 在insery算子中，并不是插一条向上返回一条，而是只返回插入的总条数
    */
   auto Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool override;
 
@@ -57,6 +58,12 @@ class InsertExecutor : public AbstractExecutor {
  private:
   /** The insert plan node to be executed*/
   const InsertPlanNode *plan_;
+  std::unique_ptr<AbstractExecutor> child_executor_;
+  TableHeap *table_;
+  std::unique_ptr<TableIterator> iterator_;
+  std::string table_name_;
+  bool issucessful_{false};
+  TableInfo *table_info_;
 };
 
 }  // namespace bustub

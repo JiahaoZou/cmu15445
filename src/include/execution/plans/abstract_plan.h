@@ -73,12 +73,15 @@ class AbstractPlanNode {
   virtual ~AbstractPlanNode() = default;
 
   /** @return the schema for the output of this plan node */
+  // Schema是表每列的表头名字，OutputSchema用来指出此节点需要输出哪些列
   auto OutputSchema() const -> const Schema & { return *output_schema_; }
 
   /** @return the child of this plan node at index child_idx */
   auto GetChildAt(uint32_t child_idx) const -> AbstractPlanNodeRef { return children_[child_idx]; }
 
   /** @return the children of this plan node */
+  // 获取孩子节点（我们实现executor的时候用不上，在执行树的时候才用得上）
+  // 在一些需要从子节点获取tuple的操作用得上，比如 join
   auto GetChildren() const -> const std::vector<AbstractPlanNodeRef> & { return children_; }
 
   /** @return the type of this plan node */

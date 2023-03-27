@@ -63,7 +63,11 @@ class ExecutorContext {
  private:
   /** The transaction context associated with this executor context */
   Transaction *transaction_;
-  /** The datbase catalog associated with this executor context */
+  /**
+   * The datbase catalog associated with this executor context
+   * 这个表格存储了所有的数据库id到表的映射，是这个context中我们
+   * 唯一可能用到的变量
+   */
   Catalog *catalog_;
   /** The buffer pool manager associated with this executor context */
   BufferPoolManager *bpm_;

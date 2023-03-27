@@ -42,9 +42,11 @@ class SeqScanPlanNode : public AbstractPlanNode {
         filter_predicate_(std::move(filter_predicate)) {}
 
   /** @return The type of the plan node */
+  // 这个在ExecutionEngine里面用于判断当前节点的类型
   auto GetType() const -> PlanType override { return PlanType::SeqScan; }
 
   /** @return The identifier of the table that should be scanned */
+  // 结合Catlog可以得到当前Executor需要的表格内容
   auto GetTableOid() const -> table_oid_t { return table_oid_; }
 
   static auto InferScanSchema(const BoundBaseTableRef &table_ref) -> Schema;
