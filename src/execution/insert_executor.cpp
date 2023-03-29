@@ -27,7 +27,7 @@ void InsertExecutor::Init() {
   iterator_ = std::make_unique<TableIterator>(table_->Begin(this->GetExecutorContext()->GetTransaction()));
   child_executor_->Init();
   try {
-    //std::cout<<exec_ctx_->GetTransaction()->GetTransactionId()<<" insert satrt"<<std::endl;
+    // std::cout<<exec_ctx_->GetTransaction()->GetTransactionId()<<" insert satrt"<<std::endl;
     if (!exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_EXCLUSIVE,
                                                 table_info_->oid_)) {
       throw ExecutionException("lock table intention exclusive failed");

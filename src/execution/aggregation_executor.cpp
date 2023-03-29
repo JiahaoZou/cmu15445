@@ -38,12 +38,11 @@ void AggregationExecutor::Init() {
     aht_.InsertCombine(aggregate_key, aggregate_value);
   }
   aht_iterator_ = aht_.Begin();
-
 }
 
 // 有可能child传上来的数据为空值，此时我们的aht迭代器一开始就为END
 // 这个时候应该向aht中加入一条空的值
-// TODO：目前还有问题，当没有groupby时，且表为空表时，count（*）会出错
+// 目前还有问题，当没有groupby时，且表为空表时，count（*）会出错
 auto AggregationExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   Schema s(*plan_->output_schema_);
   if (aht_iterator_ == aht_.End()) {

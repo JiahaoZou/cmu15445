@@ -13,6 +13,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
@@ -52,6 +53,5 @@ class SeqScanExecutor : public AbstractExecutor {
   const SeqScanPlanNode *plan_;
   TableHeap *table_;
   std::unique_ptr<TableIterator> iterator_;
-  RID last_rid_;
 };
 }  // namespace bustub

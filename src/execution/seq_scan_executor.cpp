@@ -15,7 +15,7 @@
 namespace bustub {
 
 SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan)
-    : AbstractExecutor(exec_ctx), plan_(plan),last_rid_() {}
+    : AbstractExecutor(exec_ctx), plan_(plan) {}
 
 void SeqScanExecutor::Init() {
   // 获得被操作的表或索引
@@ -26,7 +26,7 @@ void SeqScanExecutor::Init() {
   iterator_ = std::make_unique<TableIterator>(table_->Begin(exec_ctx_->GetTransaction()));
   // 该算子是对表进行扫描，所以应该锁全表
   try {
-    //std::cout<<exec_ctx_->GetTransaction()->GetTransactionId()<<" seq satrt"<<std::endl;
+    // std::cout<<exec_ctx_->GetTransaction()->GetTransactionId()<<" seq satrt"<<std::endl;
     if (exec_ctx_->GetTransaction()->GetIsolationLevel() != IsolationLevel::READ_UNCOMMITTED &&
         !exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_SHARED,
                                                 table_info->oid_)) {
@@ -39,7 +39,7 @@ void SeqScanExecutor::Init() {
 
 auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   try {
-    if(!exec_ctx_->GetTransaction()->GetSharedRowLockSet()->empty()){
+    if (!exec_ctx_->GetTransaction()->GetSharedRowLockSet()->empty()) {
       if (exec_ctx_->GetTransaction()->GetIsolationLevel() == IsolationLevel::READ_COMMITTED &&
           !exec_ctx_->GetLockManager()->UnlockRow(
               exec_ctx_->GetTransaction(), exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->oid_, *rid)) {
@@ -63,10 +63,9 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     *tuple = *((*iterator_)++);
     *rid = tuple->GetRid();
 
-
     return true;
   }
-  return false; 
+  return false;
 }
 
 }  // namespace bustub

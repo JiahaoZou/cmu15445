@@ -14,11 +14,14 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
+#include "catalog/schema.h"
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/nested_loop_join_plan.h"
 #include "storage/table/tuple.h"
+#include "type/value_factory.h"
 
 namespace bustub {
 
@@ -55,10 +58,21 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
  private:
   /** The NestedLoopJoin plan node to be executed. */
   const NestedLoopJoinPlanNode *plan_;
+  bool is_ineer_{false};
+  std::unique_ptr<AbstractExecutor> left_executor_;
+  std::unique_ptr<AbstractExecutor> right_executor_;
+  std::vector<Tuple> right_tuples_;  // 一次性存放所有的右孩子的tuple
+  uint64_t index_{0};                // 记录上一次匹配的位置
+  Tuple left_tuple_;  // 左孩子则是按照火山模型的要求，一条一条取，记录上一次左孩子的记录值
+  RID left_rid_;
+  Schema left_schema_;
+  Schema right_schema_;
+  bool is_match_{false};
+  /*
   std::unique_ptr<AbstractExecutor> child_executor_;
   bool is_ineer_{false};
   IndexInfo *index_info_;
   TableInfo *table_info_;
+  */
 };
-
 }  // namespace bustub
