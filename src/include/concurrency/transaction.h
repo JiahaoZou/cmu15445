@@ -360,8 +360,8 @@ class Transaction {
   std::shared_ptr<std::unordered_set<table_oid_t>> six_table_lock_set_;
 
   /** LockManager: the set of row locks held by this transaction. */
-  std::shared_ptr<std::unordered_map<table_oid_t, std::unordered_set<RID>>> s_row_lock_set_;
-  std::shared_ptr<std::unordered_map<table_oid_t, std::unordered_set<RID>>> x_row_lock_set_;
+  std::shared_ptr<std::unordered_map<table_oid_t, std::unordered_set<RID>>> s_row_lock_set_;     // 一个hash表，维持tableid --> 行id的s锁集合 的映射
+  std::shared_ptr<std::unordered_map<table_oid_t, std::unordered_set<RID>>> x_row_lock_set_;     // 一个hash表，维持tableid --> 行id的x锁集合 的映射
 };
 
 }  // namespace bustub
