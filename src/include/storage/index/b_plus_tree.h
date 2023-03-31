@@ -46,18 +46,15 @@ class BPlusTree {
   auto GetMaxsize(BPlusTreePage *page) const -> int;
   // Insert a key-value pair into this B+ tree.
   auto Insert(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
-  auto DeleteEntry(Page *&page, const KeyType &key) -> void;
-  auto DeleteEntryRW(Page *&page, const KeyType &key, Transaction *transaction) -> void;
+  auto DeleteEntry(Page *&page, const KeyType &key, Transaction *transaction) -> void;
   // Remove a key and its value from this B+ tree.
   void Remove(const KeyType &key, Transaction *transaction = nullptr);
 
   // return the value associated with a given key
   auto GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction = nullptr) -> bool;
-  auto FindLeafPage(const KeyType &key) -> Page *;
-  auto FindLeafPageRW(const KeyType &key, Transaction *transaction, Operation op) -> Page *;
+  auto FindLeafPage(const KeyType &key, Transaction *transaction, Operation op) -> Page *;
   auto IsSafe(Page *page, Operation op) -> bool;
-  auto InsertInParent(Page *page_leaf, const KeyType &key, Page *page_bother) -> void;
-  auto InsertInParentRW(Page *page_leaf, const KeyType &key, Page *page_bother, Transaction *transaction) -> void;
+  auto InsertInParent(Page *page_leaf, const KeyType &key, Page *page_bother, Transaction *transaction) -> void;
   // return the page id of the root node
   auto GetRootPageId() -> page_id_t;
   auto UnlockAndUnpin(Transaction *transaction, Operation op) -> void;

@@ -325,7 +325,7 @@ class LockManager {
     }
     row_lock_set->second.erase(rid);
   }
-
+  // 返回false表示该点不在死锁环上
   auto Dfs(txn_id_t txn_id) -> bool {
     if (safe_set_.find(txn_id) != safe_set_.end()) {
       return false;
@@ -365,12 +365,12 @@ class LockManager {
   std::atomic<bool> enable_cycle_detection_;
   std::thread *cycle_detection_thread_;
   /** Waits-for graph representation. */
-  std::unordered_map<txn_id_t, std::vector<txn_id_t>> waits_for_;
-  std::mutex waits_for_latch_;
+  std::unordered_map<txn_id_t, std::vector<txn_id_t>> waits_for_;                       // 事务之间的等待关系
+  std::mutex waits_for_latch_;                                                          
 
-  std::set<txn_id_t> safe_set_;
-  std::set<txn_id_t> txn_set_;
-  std::unordered_set<txn_id_t> active_set_;
+  std::set<txn_id_t> safe_set_;                                                         // 经过dfs算法确认安全的点集合
+  std::set<txn_id_t> txn_set_;                                                          // 所有事务点的集合
+  std::unordered_set<txn_id_t> active_set_;                                             // 用来临时记录dfs中已经扫描过的点
 
   std::unordered_map<txn_id_t, RID> map_txn_rid_;
   std::unordered_map<txn_id_t, table_oid_t> map_txn_oid_;

@@ -393,23 +393,25 @@ auto LockManager::UnlockRow(Transaction *txn, const table_oid_t &oid, const RID 
   throw bustub::TransactionAbortException(txn->GetTransactionId(), AbortReason::ATTEMPTED_UNLOCK_BUT_NO_LOCK_HELD);  
 }
 
+// 在死锁依赖中加入一条边
 void LockManager::AddEdge(txn_id_t t1, txn_id_t t2) {
   txn_set_.insert(t1);
   txn_set_.insert(t2);
   waits_for_[t1].push_back(t2);
 }
-
+// 将t1-->t2的边删掉
 void LockManager::RemoveEdge(txn_id_t t1, txn_id_t t2) {
   auto iter = std::find(waits_for_[t1].begin(), waits_for_[t1].end(), t2);
   if (iter != waits_for_[t1].end()) {
     waits_for_[t1].erase(iter);
   }
 }
-
+// 找到任一死锁环中最大的事务号，并返回
 auto LockManager::HasCycle(txn_id_t *txn_id) -> bool {
   for (auto const &start_txn_id : txn_set_) {
     if (Dfs(start_txn_id)) {
       *txn_id = *active_set_.begin();
+      // 找到最大的事务号
       for (auto const &active_txn_id : active_set_) {
         *txn_id = std::max(*txn_id, active_txn_id);
       }
@@ -421,7 +423,7 @@ auto LockManager::HasCycle(txn_id_t *txn_id) -> bool {
   }
   return false;
 }
-
+// 将waitfor中从txn_id出发的边和指向txn_id的边全部删除
 auto LockManager::DeleteNode(txn_id_t txn_id) -> void {
   waits_for_.erase(txn_id);
 
@@ -442,7 +444,7 @@ auto LockManager::GetEdgeList() -> std::vector<std::pair<txn_id_t, txn_id_t>> {
   }
   return result;
 }
-
+// 死锁检测主函数，用于让调用者起线程
 void LockManager::RunCycleDetection() {
   while (enable_cycle_detection_) {
     std::this_thread::sleep_for(cycle_detection_interval);

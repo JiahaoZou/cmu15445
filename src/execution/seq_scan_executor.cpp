@@ -26,7 +26,8 @@ void SeqScanExecutor::Init() {
   iterator_ = std::make_unique<TableIterator>(table_->Begin(exec_ctx_->GetTransaction()));
   // 该算子是对表进行扫描，所以应该锁全表
   try {
-    // std::cout<<exec_ctx_->GetTransaction()->GetTransactionId()<<" seq satrt"<<std::endl;
+    // 因为实现锁时是会抛异常的，这里就应该在try中
+    // 
     if (exec_ctx_->GetTransaction()->GetIsolationLevel() != IsolationLevel::READ_UNCOMMITTED &&
         !exec_ctx_->GetLockManager()->LockTable(exec_ctx_->GetTransaction(), LockManager::LockMode::INTENTION_SHARED,
                                                 table_info->oid_)) {
